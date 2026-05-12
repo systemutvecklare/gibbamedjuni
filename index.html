@@ -5,29 +5,398 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Jubby</title>
     <style>
-      /* Enkel stil så sidan ser trevlig ut direkt */
+      /* Ta bort marginal så spelet får hela fönstret */
       body {
         margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        font-family: system-ui, sans-serif;
-        background: #0f172a;
-        color: #f8fafc;
-      }
-      h1 {
-        font-size: clamp(2rem, 8vw, 5rem);
-        margin: 0;
-      }
-      p {
-        opacity: 0.7;
       }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Hello Jubby 👋</h1>
-      <p>Här ska spelet byggas.</p>
-    </main>
+    <!-- Kaboom är spelbiblioteket — vi laddar in det från internet -->
+    <script src="https://unpkg.com/kaboom@3000.1.17/dist/kaboom.js"></script>
+
+    <script>
+      // Starta Kaboom — det skapar en "canvas" (ritplatta) som täcker hela sidan
+      kaboom({
+        background: [135, 206, 235], // himmelsblå bakgrund (R, G, B)
+      });
+
+      // Ladda applåd-ljudet från Googles gratis ljudbibliotek
+      loadSound("applause", "https://actions.google.com/sounds/v1/crowds/applause.ogg");
+
+      // Sätt tyngdkraft — högre siffra = drar neråt snabbare
+      setGravity(1100);
+
+
+      // ===== HJÄLP-FUNKTION: lägg till hela banan =====
+      // Funktion = ett eget kommando vi själva uppfunnit.
+      // När vi skriver "buildLevel()" händer allt som står här inne.
+      function buildLevel() {
+        // Marken
+        add([
+          rect(width(), 40),
+          pos(0, height() - 40),
+          color(80, 50, 20),
+          area(),
+          body({ isStatic: true }),
+        ]);
+
+        // Plattform 1 — låg, till vänster
+        add([
+          rect(140, 10),
+          pos(200, 630),
+          color(220, 140, 70),
+          area(),
+          body({ isStatic: true }),
+        ]);
+
+        // Plattform 2 — mitten, lite högre upp
+        add([
+          rect(140, 10),
+          pos(450, 530),
+          color(220, 140, 70),
+          area(),
+          body({ isStatic: true }),
+        ]);
+
+        // Plattform 3 — högst upp, mitten
+        add([
+          rect(140, 10),
+          pos(220, 430),
+          color(220, 140, 70),
+          area(),
+          body({ isStatic: true }),
+        ]);
+
+        // Plattform 4 — högst upp, till höger
+        add([
+          rect(140, 10),
+          pos(13, 330),
+          color(220, 140, 70),
+          area(),
+          body({ isStatic: true }),
+        ]);
+
+        // Plattform 5
+        add([
+          rect(140, 10),
+          pos(300, 250),
+          color(220, 140, 70),
+          area(),
+          body({ isStatic: true }),
+        ]);
+
+        // Plattform 6
+        add([
+          rect(200, 10),
+          pos(500, 150),
+          color(220, 140, 70),
+          area(),
+          body({ isStatic: true }),
+        ]);
+
+        // ===== FLAGGAN =====
+        // Vi bygger flaggan av flera delar: en stång, en vit bakgrund,
+        // svarta schackrutor och en osynlig hitbox som triggar målet
+
+        // Flagstången — smal mörk pinne
+        add([
+          rect(4, 60),
+          pos(580, 90),
+          color(80, 60, 40),
+        ]);
+
+        // Flaggans vita bakgrund — där rutorna ska målas
+        add([
+          rect(40, 20),
+          pos(584, 90),
+          color(255, 255, 255),
+        ]);
+
+        // Schackrutigt mönster — 4 kolumner × 2 rader, fyll varannan ruta svart
+        const squareSize = 10;
+        for (let row = 0; row < 2; row++) {
+          for (let col = 0; col < 4; col++) {
+            // Om summan av rad och kolumn är jämn — måla rutan svart
+            if ((row + col) % 2 === 0) {
+              add([
+                rect(squareSize, squareSize),
+                pos(584 + col * squareSize, 90 + row * squareSize),
+                color(0, 0, 0),
+              ]);
+            }
+          }
+        }
+
+        // Osynlig hitbox som triggar målet när spelaren krockar
+        add([
+          rect(44, 60),       // täcker stång + flagga
+          pos(580, 90),
+          opacity(0),         // helt genomskinlig
+          area(),
+          "goal",
+        ]);
+      }
+
+
+      // ===== STARTSKÄRMEN =====
+      scene("start", () => {
+        // Nollställ kameran (ifall vi kom hit efter en zoomad in-vinst)
+        camPos(width() / 2, height() / 2);
+        camScale(1);
+
+        // Bygg upp banan så bakgrunden ser ut som själva spelet
+        buildLevel();
+
+        // En "fryst" streckgubbe på startpositionen
+        const startX = 20;
+        const startY = height() - 40 - 60;
+        add([circle(8), pos(startX + 15, startY + 8), color(0, 0, 0), anchor("center")]);
+        add([rect(4, 16), pos(startX + 13, startY + 16), color(0, 0, 0)]);
+        add([rect(3, 14), pos(startX + 12, startY + 18), color(0, 0, 0)]);   // vänster arm
+        add([rect(3, 14), pos(startX + 18, startY + 18), color(0, 0, 0)]);   // höger arm
+        add([rect(3, 28), pos(startX + 12, startY + 32), color(0, 0, 0)]);   // vänster ben
+        add([rect(3, 28), pos(startX + 18, startY + 32), color(0, 0, 0)]);   // höger ben
+
+        // Mörk halvgenomskinlig täckning så texten syns tydligt
+        add([
+          rect(width(), height()),
+          pos(0, 0),
+          color(0, 0, 0),
+          opacity(0.5),
+        ]);
+
+        // Klicka-för-att-starta-texten
+        add([
+          text("Klicka för att starta!", { size: 50 }),
+          pos(center()),
+          anchor("center"),
+          color(255, 255, 255),
+          outline(4, rgb(0, 0, 0)),
+        ]);
+
+        // När man klickar — gå till spelet
+        onClick(() => {
+          go("game");
+        });
+      });
+
+
+      // ===== SJÄLVA SPELET =====
+      scene("game", () => {
+        // Bygg upp banan
+        buildLevel();
+
+        // Spelaren — osynlig hitbox (där fysiken sitter)
+        const player = add([
+          rect(30, 60),
+          pos(20, height() - 40 - 60),     // nere i vänstra hörnet på marken
+          opacity(0),                       // helt genomskinlig
+          area(),
+          body(),
+        ]);
+
+        // Streckgubben — kroppsdelar som hänger fast på spelaren
+        // (deras position räknas från spelarens övre vänstra hörn)
+        player.add([
+          circle(8),
+          pos(15, 8),
+          color(0, 0, 0),
+          anchor("center"),
+        ]);                                                       // huvud
+        player.add([rect(4, 16), pos(13, 16), color(0, 0, 0)]);  // kropp
+
+        // Armar och ben sparas i variabler så vi kan animera dem.
+        // anchor("top") gör att de "hänger" från sin överkant — som de vore
+        // fästa i axeln/höften — så att rotate() svänger dem därifrån.
+        const leftArm = player.add([
+          rect(3, 14), pos(12, 18), anchor("top"), color(0, 0, 0), rotate(0),
+        ]);
+        const rightArm = player.add([
+          rect(3, 14), pos(18, 18), anchor("top"), color(0, 0, 0), rotate(0),
+        ]);
+        const leftLeg = player.add([
+          rect(3, 28), pos(12, 32), anchor("top"), color(0, 0, 0), rotate(0),
+        ]);
+        const rightLeg = player.add([
+          rect(3, 28), pos(18, 32), anchor("top"), color(0, 0, 0), rotate(0),
+        ]);
+
+        // Animering — körs varje frame
+        onUpdate(() => {
+          const isMoving = isKeyDown("left") || isKeyDown("right");
+          const inAir = !player.isGrounded();
+
+          if (isDancing) {
+            // Dansa: armar slänger upp och vinkar, ben sparkar i takt
+            const t = time() * 8;
+            leftArm.angle = 180 - 50 * Math.sin(t);
+            rightArm.angle = -180 + 50 * Math.sin(t);
+            leftLeg.angle = Math.sin(t * 1.5) * 30;
+            rightLeg.angle = -Math.sin(t * 1.5) * 30;
+          } else if (inAir) {
+            // Hoppa: armarna upp, benen lite isär
+            leftArm.angle = -150;
+            rightArm.angle = 150;
+            leftLeg.angle = -15;
+            rightLeg.angle = 15;
+          } else if (isMoving) {
+            // Springa: armar och ben svänger i takt (sinusvåg)
+            const swing = Math.sin(time() * 14) * 35;
+            leftLeg.angle = swing;
+            rightLeg.angle = -swing;
+            leftArm.angle = -swing;    // armar svänger motsatt sitt eget ben
+            rightArm.angle = swing;
+          } else {
+            // Stå still: allt rakt
+            leftArm.angle = 0;
+            rightArm.angle = 0;
+            leftLeg.angle = 0;
+            rightLeg.angle = 0;
+          }
+        });
+
+        // Kom ihåg om vi redan vunnit (så konfettin bara smäller en gång)
+        let hasWon = false;
+        let isDancing = false;
+
+        // ===== TIMER OCH REKORD =====
+        // Läs sparat rekord från webbläsarens minne (eller null om inget sparats än)
+        const savedRecord = localStorage.getItem("jubbyRecord");
+        const bestTime = savedRecord ? parseFloat(savedRecord) : null;
+
+        let gameTime = 0;          // hur länge spelet pågått (sekunder)
+        let timerRunning = false;  // false under nedräkningen, true när man får springa
+
+        // Tids-skylten uppe till vänster
+        const timerLabel = add([
+          text("Tid: 0.00", { size: 28 }),
+          pos(10, 10),
+          color(255, 255, 255),
+          outline(3, rgb(0, 0, 0)),
+        ]);
+
+        // Rekord-skylten under tiden
+        const recordLabel = add([
+          text("Rekord: " + (bestTime !== null ? bestTime.toFixed(2) : "—"), { size: 28 }),
+          pos(10, 45),
+          color(255, 255, 255),
+          outline(3, rgb(0, 0, 0)),
+        ]);
+
+        // Räkna upp tiden varje "tick" (när Kaboom uppdaterar skärmen)
+        onUpdate(() => {
+          if (timerRunning) {
+            gameTime += dt();                                // dt = tid sedan förra ticken
+            timerLabel.text = "Tid: " + gameTime.toFixed(2); // visa med 2 decimaler
+          }
+        });
+
+        // När spelaren krockar med flaggan...
+        player.onCollide("goal", () => {
+          if (hasWon) return;
+          hasWon = true;
+          timerRunning = false;   // stoppa klockan
+
+          // Är det ett nytt rekord?
+          if (bestTime === null || gameTime < bestTime) {
+            localStorage.setItem("jubbyRecord", gameTime.toString());
+            recordLabel.text = "Rekord: " + gameTime.toFixed(2);
+          }
+
+          // Stor text ovanför spelaren (där kameran zoomar in)
+          add([
+            text("Du klara det!", { size: 50 }),
+            pos(player.pos.x + 15, player.pos.y - 30),
+            anchor("center"),
+            color(255, 255, 255),
+            outline(6, rgb(0, 0, 0)),
+          ]);
+
+          // Spela upp applåden
+          play("applause");
+
+          // Konfetti — 80 små färgade fyrkanter som flyger åt slumpmässiga håll
+          // (lite långsammare så de hinner synas i in-zoomningen)
+          for (let i = 0; i < 80; i++) {
+            add([
+              rect(8, 8),
+              pos(player.pos.x + 15, player.pos.y + 30),
+              color(rand(0, 255), rand(0, 255), rand(0, 255)),
+              rotate(rand(0, 360)),
+              move(rand(0, 360), rand(60, 180)),
+              lifespan(2.5, { fade: 0.8 }),
+            ]);
+          }
+
+          // Starta dansen och zooma in på spelaren
+          isDancing = true;
+          camPos(player.pos.x + 15, player.pos.y + 30);  // mitt på spelaren
+          camScale(1.8);                                 // 1,8 gånger närmare
+
+          // Vänta 7 sekunder och gå tillbaka till startskärmen
+          wait(7, () => {
+            go("start");
+          });
+        });
+
+        // Hur snabbt spelaren går (pixlar per sekund)
+        const SPEED = 300;
+
+        // ===== NEDRÄKNING =====
+        // Visa "Klara... Färdiga... GÅÅ!" innan styrningen aktiveras
+        const countdownLabel = add([
+          text("Klara...", { size: 80 }),
+          pos(center()),
+          anchor("center"),
+          color(255, 255, 255),
+          outline(6, rgb(0, 0, 0)),
+        ]);
+
+        // Efter 1 sekund: byt text till "Färdiga..."
+        wait(1, () => {
+          countdownLabel.text = "Färdiga...";
+        });
+
+        // Efter 2 sekunder: byt text till "HOPPA!"
+        wait(2, () => {
+          countdownLabel.text = "HOPPA!";
+        });
+
+        // Efter 3 sekunder: ta bort texten, starta klockan och slå på styrningen
+        wait(3, () => {
+          destroy(countdownLabel);
+          timerRunning = true;
+
+          // När vänsterpilen hålls nere — flytta åt vänster
+          onKeyDown("left", () => {
+            player.move(-SPEED, 0);
+          });
+
+          // När högerpilen hålls nere — flytta åt höger
+          onKeyDown("right", () => {
+            player.move(SPEED, 0);
+          });
+
+          // När mellanslag trycks ned — hoppa, men bara om vi står på marken
+          onKeyPress("space", () => {
+            if (player.isGrounded()) {
+              player.jump(500);
+            }
+          });
+
+          // När uppåtpilen trycks ned — hoppa, men bara om vi står på marken
+          onKeyPress("up", () => {
+            if (player.isGrounded()) {
+              player.jump(500);
+            }
+          });
+        });
+      });
+
+
+      // Starta spelet på startskärmen
+      go("start");
+    </script>
   </body>
 </html>
