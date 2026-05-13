@@ -18,6 +18,9 @@
     <script>
       // Starta Kaboom — det skapar en "canvas" (ritplatta) som täcker hela sidan
       kaboom({
+        width: 800,                  // fast spel-bredd (virtuella pixlar)
+        height: 700,                 // fast spel-höjd
+        letterbox: true,             // skala upp till fönstret, lägg svarta kanter om det inte passar
         background: [135, 206, 235], // himmelsblå bakgrund (R, G, B)
       });
 
