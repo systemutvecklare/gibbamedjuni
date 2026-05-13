@@ -1,14 +1,1 @@
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "lsof -ti:8080 >/dev/null 2>&1 || (cd /Users/gamer/repos/gibbamedjuni && nohup npx --yes live-server --port=8080 --no-browser >/tmp/jubby-live-server.log 2>&1 &)"
-          }
-        ]
-      }
-    ]
-  }
-}
+{}
