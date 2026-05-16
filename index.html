@@ -17,10 +17,8 @@
 
     <script>
       // Starta Kaboom — det skapar en "canvas" (ritplatta) som täcker hela sidan
+      // (utan width/height fyller den hela webbläsarfönstret)
       kaboom({
-        width: 800,                  // fast spel-bredd (virtuella pixlar)
-        height: 700,                 // fast spel-höjd
-        letterbox: true,             // skala upp till fönstret, lägg svarta kanter om det inte passar
         background: [135, 206, 235], // himmelsblå bakgrund (R, G, B)
       });
 
@@ -34,86 +32,110 @@
       // ===== HJÄLP-FUNKTION: lägg till hela banan =====
       // Funktion = ett eget kommando vi själva uppfunnit.
       // När vi skriver "buildLevel()" händer allt som står här inne.
+      // Banan är designad för en bredd på 800 pixlar. När fönstret är bredare
+      // än så centrerar vi hela layouten genom att lägga till offsetX till
+      // varje X-position. Marken täcker alltid hela fönstret separat.
+      const LEVEL_WIDTH = 800;
+      function levelOffsetX() {
+        return (width() - LEVEL_WIDTH) / 2;
+      }
+
+      // Alla saker som byggs här får taggen "level" så vi kan riva och
+      // bygga om dem som en grupp när fönstret ändrar storlek.
       function buildLevel() {
-        // Marken
+        const offsetX = levelOffsetX();
+
+        // Marken — täcker hela bredden av fönstret så man kan gå överallt
         add([
           rect(width(), 40),
           pos(0, height() - 40),
           color(80, 50, 20),
           area(),
           body({ isStatic: true }),
+          "level",
         ]);
 
         // Plattform 1 — låg, till vänster
         add([
           rect(140, 10),
-          pos(200, 630),
+          pos(200 + offsetX, height() - 70),
           color(220, 140, 70),
           area(),
           body({ isStatic: true }),
+          "level",
         ]);
 
         // Plattform 2 — mitten, lite högre upp
         add([
           rect(140, 10),
-          pos(450, 530),
+          pos(450 + offsetX, height() - 170),
           color(220, 140, 70),
           area(),
           body({ isStatic: true }),
+          "level",
         ]);
 
         // Plattform 3 — högst upp, mitten
         add([
           rect(140, 10),
-          pos(220, 430),
+          pos(220 + offsetX, height() - 270),
           color(220, 140, 70),
           area(),
           body({ isStatic: true }),
+          "level",
         ]);
 
         // Plattform 4 — högst upp, till höger
         add([
           rect(140, 10),
-          pos(13, 330),
+          pos(13 + offsetX, height() - 370),
           color(220, 140, 70),
           area(),
           body({ isStatic: true }),
+          "level",
         ]);
 
         // Plattform 5
         add([
           rect(140, 10),
-          pos(300, 250),
+          pos(300 + offsetX, height() - 450),
           color(220, 140, 70),
           area(),
           body({ isStatic: true }),
+          "level",
         ]);
 
         // Plattform 6
         add([
           rect(200, 10),
-          pos(500, 150),
+          pos(500 + offsetX, height() - 550),
           color(220, 140, 70),
           area(),
           body({ isStatic: true }),
+          "level",
         ]);
 
         // ===== FLAGGAN =====
         // Vi bygger flaggan av flera delar: en stång, en vit bakgrund,
         // svarta schackrutor och en osynlig hitbox som triggar målet
 
+        // Flaggans Y-position räknas från botten — samma höjd som plattform 6
+        const flagY = height() - 610;
+
         // Flagstången — smal mörk pinne
         add([
           rect(4, 60),
-          pos(580, 90),
+          pos(580 + offsetX, flagY),
           color(80, 60, 40),
+          "level",
         ]);
 
         // Flaggans vita bakgrund — där rutorna ska målas
         add([
           rect(40, 20),
-          pos(584, 90),
+          pos(584 + offsetX, flagY),
           color(255, 255, 255),
+          "level",
         ]);
 
         // Schackrutigt mönster — 4 kolumner × 2 rader, fyll varannan ruta svart
@@ -124,8 +146,9 @@
             if ((row + col) % 2 === 0) {
               add([
                 rect(squareSize, squareSize),
-                pos(584 + col * squareSize, 90 + row * squareSize),
+                pos(584 + offsetX + col * squareSize, flagY + row * squareSize),
                 color(0, 0, 0),
+                "level",
               ]);
             }
           }
@@ -134,11 +157,21 @@
         // Osynlig hitbox som triggar målet när spelaren krockar
         add([
           rect(44, 60),       // täcker stång + flagga
-          pos(580, 90),
+          pos(580 + offsetX, flagY),
           opacity(0),         // helt genomskinlig
           area(),
           "goal",
+          "level",
         ]);
+      }
+
+      // Bygg om hela banan när fönstret ändrar storlek så marken alltid
+      // täcker hela bredden och plattformarna sitter rätt mot nya botten.
+      function rebuildLevelOnResize() {
+        onResize(() => {
+          destroyAll("level");
+          buildLevel();
+        });
       }
 
 
@@ -148,35 +181,51 @@
         camPos(width() / 2, height() / 2);
         camScale(1);
 
-        // Bygg upp banan så bakgrunden ser ut som själva spelet
+        // Bygg startskärmens egna dekorationer (streckgubbe, mörker, text).
+        // De får taggen "start-decor" så vi kan riva och bygga om dem när
+        // fönstret ändrar storlek — då följer mörkret med över hela ytan.
+        function buildStartDecor() {
+          // En "fryst" streckgubbe på startpositionen (följer centreringen)
+          const startX = 20 + levelOffsetX();
+          const startY = height() - 40 - 60;
+          add([circle(8), pos(startX + 15, startY + 8), color(0, 0, 0), anchor("center"), "start-decor"]);
+          add([rect(4, 16), pos(startX + 13, startY + 16), color(0, 0, 0), "start-decor"]);
+          add([rect(3, 14), pos(startX + 12, startY + 18), color(0, 0, 0), "start-decor"]);   // vänster arm
+          add([rect(3, 14), pos(startX + 18, startY + 18), color(0, 0, 0), "start-decor"]);   // höger arm
+          add([rect(3, 28), pos(startX + 12, startY + 32), color(0, 0, 0), "start-decor"]);   // vänster ben
+          add([rect(3, 28), pos(startX + 18, startY + 32), color(0, 0, 0), "start-decor"]);   // höger ben
+
+          // Mörk halvgenomskinlig täckning över hela fönstret
+          add([
+            rect(width(), height()),
+            pos(0, 0),
+            color(0, 0, 0),
+            opacity(0.5),
+            "start-decor",
+          ]);
+
+          // Klicka-för-att-starta-texten
+          add([
+            text("Klicka för att starta!", { size: 50 }),
+            pos(center()),
+            anchor("center"),
+            color(255, 255, 255),
+            outline(4, rgb(0, 0, 0)),
+            "start-decor",
+          ]);
+        }
+
+        // Bygg upp banan + startskärmens dekor
         buildLevel();
+        buildStartDecor();
 
-        // En "fryst" streckgubbe på startpositionen
-        const startX = 20;
-        const startY = height() - 40 - 60;
-        add([circle(8), pos(startX + 15, startY + 8), color(0, 0, 0), anchor("center")]);
-        add([rect(4, 16), pos(startX + 13, startY + 16), color(0, 0, 0)]);
-        add([rect(3, 14), pos(startX + 12, startY + 18), color(0, 0, 0)]);   // vänster arm
-        add([rect(3, 14), pos(startX + 18, startY + 18), color(0, 0, 0)]);   // höger arm
-        add([rect(3, 28), pos(startX + 12, startY + 32), color(0, 0, 0)]);   // vänster ben
-        add([rect(3, 28), pos(startX + 18, startY + 32), color(0, 0, 0)]);   // höger ben
-
-        // Mörk halvgenomskinlig täckning så texten syns tydligt
-        add([
-          rect(width(), height()),
-          pos(0, 0),
-          color(0, 0, 0),
-          opacity(0.5),
-        ]);
-
-        // Klicka-för-att-starta-texten
-        add([
-          text("Klicka för att starta!", { size: 50 }),
-          pos(center()),
-          anchor("center"),
-          color(255, 255, 255),
-          outline(4, rgb(0, 0, 0)),
-        ]);
+        // När fönstret ändrar storlek: riv och bygg om båda lagren
+        onResize(() => {
+          destroyAll("level");
+          destroyAll("start-decor");
+          buildLevel();
+          buildStartDecor();
+        });
 
         // När man klickar — gå till spelet
         onClick(() => {
@@ -189,12 +238,13 @@
       scene("game", () => {
         // Bygg upp banan
         buildLevel();
+        rebuildLevelOnResize();
 
         // Spelaren — osynlig hitbox (där fysiken sitter)
         const player = add([
           rect(30, 60),
-          pos(20, height() - 40 - 60),     // nere i vänstra hörnet på marken
-          opacity(0),                       // helt genomskinlig
+          pos(20 + levelOffsetX(), height() - 40 - 60),   // startar vid banans vänsterkant
+          opacity(0),                                      // helt genomskinlig
           area(),
           body(),
         ]);
@@ -265,7 +315,11 @@
 
         // ===== TIMER OCH REKORD =====
         // Läs sparat rekord från webbläsarens minne (eller null om inget sparats än)
-        const savedRecord = localStorage.getItem("jubbyRecord");
+        // try/catch: i en sandboxad förhandsvisning är localStorage blockerat
+        let savedRecord = null;
+        try {
+          savedRecord = localStorage.getItem("jubbyRecord");
+        } catch (e) {}
         const bestTime = savedRecord ? parseFloat(savedRecord) : null;
 
         let gameTime = 0;          // hur länge spelet pågått (sekunder)
@@ -303,7 +357,10 @@
 
           // Är det ett nytt rekord?
           if (bestTime === null || gameTime < bestTime) {
-            localStorage.setItem("jubbyRecord", gameTime.toString());
+            // try/catch: i en sandboxad förhandsvisning är localStorage blockerat
+            try {
+              localStorage.setItem("jubbyRecord", gameTime.toString());
+            } catch (e) {}
             recordLabel.text = "Rekord: " + gameTime.toFixed(2);
           }
 
