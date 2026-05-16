@@ -9,17 +9,68 @@
       body {
         margin: 0;
       }
+
+      /* Mobilknappar — gömda som standard (visas bara på touch-skärmar) */
+      #mobile-controls {
+        display: none;
+      }
+
+      /* Touch-skärmar (mobil/surfplatta): visa knapparna */
+      @media (pointer: coarse) {
+        #mobile-controls {
+          display: block;
+          position: fixed;
+          bottom: 20px;
+          left: 0;
+          right: 0;
+          pointer-events: none; /* själva lådan tar inte tryck, bara knapparna */
+        }
+
+        #mobile-controls button {
+          position: absolute;
+          bottom: 0;
+          width: 80px;
+          height: 80px;
+          font-size: 36px;
+          border: 3px solid #333;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.7);
+          color: #222;
+          pointer-events: auto; /* knapparna fångar tryck */
+          user-select: none;
+          -webkit-user-select: none;
+          touch-action: manipulation; /* slipp dubbeltryck-zoom */
+        }
+
+        /* Vänster och höger på vänster sida av skärmen (för vänster tumme) */
+        #btn-left  { left: 20px; }
+        #btn-right { left: 110px; }
+
+        /* Hopp på höger sida (för höger tumme) */
+        #btn-jump  { right: 20px; }
+      }
     </style>
   </head>
   <body>
+    <!-- Mobilknappar — syns bara på touch-skärmar (se CSS ovan) -->
+    <div id="mobile-controls">
+      <button id="btn-left" aria-label="Vänster">←</button>
+      <button id="btn-right" aria-label="Höger">→</button>
+      <button id="btn-jump" aria-label="Hoppa">↑</button>
+    </div>
+
     <!-- Kaboom är spelbiblioteket — vi laddar in det från internet -->
     <script src="https://unpkg.com/kaboom@3000.1.17/dist/kaboom.js"></script>
 
     <script>
       // Starta Kaboom — det skapar en "canvas" (ritplatta) som täcker hela sidan
       // (utan width/height fyller den hela webbläsarfönstret)
+      // Skala ner på smala skärmar så hela banan får plats (banan är 800 px bred)
+      const screenWidth = window.innerWidth;
+      const gameScale = screenWidth < 800 ? screenWidth / 800 : 1;
       kaboom({
         background: [135, 206, 235], // himmelsblå bakgrund (R, G, B)
+        scale: gameScale,            // 1 = full storlek, mindre = utzoomat
       });
 
       // Ladda applåd-ljudet från Googles gratis ljudbibliotek
@@ -423,6 +474,27 @@
           countdownLabel.text = "HOPPA!";
         });
 
+        // Mobilknappar: två flaggor som säger om vänster/höger trycks just nu.
+        // De sätts till true när fingret rör knappen och false när det släpper.
+        let touchLeft = false;
+        let touchRight = false;
+
+        // Hjälp-funktion: koppla en knapp till en flagga.
+        // pointerdown = finger ner, pointerup/cancel/leave = finger upp/utanför.
+        function bindHoldButton(id, setState) {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          const start = (e) => { e.preventDefault(); setState(true); };
+          const end   = (e) => { e.preventDefault(); setState(false); };
+          btn.addEventListener("pointerdown", start);
+          btn.addEventListener("pointerup", end);
+          btn.addEventListener("pointercancel", end);
+          btn.addEventListener("pointerleave", end);
+        }
+
+        bindHoldButton("btn-left",  v => touchLeft = v);
+        bindHoldButton("btn-right", v => touchRight = v);
+
         // Efter 3 sekunder: ta bort texten, starta klockan och slå på styrningen
         wait(3, () => {
           destroy(countdownLabel);
@@ -451,6 +523,23 @@
               player.jump(500);
             }
           });
+
+          // Mobilknapparna: läs flaggorna varje frame och flytta spelaren
+          onUpdate(() => {
+            if (touchLeft)  player.move(-SPEED, 0);
+            if (touchRight) player.move(SPEED, 0);
+          });
+
+          // Hopp-knappen: ett tryck = ett hopp (om vi står på marken)
+          const jumpBtn = document.getElementById("btn-jump");
+          if (jumpBtn) {
+            jumpBtn.addEventListener("pointerdown", (e) => {
+              e.preventDefault();
+              if (player.isGrounded()) {
+                player.jump(500);
+              }
+            });
+          }
         });
       });
 
