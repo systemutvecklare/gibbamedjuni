@@ -15,20 +15,33 @@
         display: none;
       }
 
-      /* Touch-skärmar (mobil/surfplatta): visa knapparna */
+      /* Touch-skärmar (mobil/surfplatta): visa knapparna i en egen brun rad
+         längst ner. Höjden här (120px) matchar CONTROLS_HEIGHT i JS-koden. */
       @media (pointer: coarse) {
+        body {
+          background: rgb(80, 50, 20); /* samma bruna som marken */
+        }
+
+        /* Krymp Kaboom-canvasen så de nedersta 120px lämnas åt knapprad */
+        canvas {
+          height: calc(100vh - 120px) !important;
+          max-height: calc(100vh - 120px) !important;
+        }
+
         #mobile-controls {
           display: block;
           position: fixed;
-          bottom: 20px;
+          bottom: 0;
           left: 0;
           right: 0;
+          height: 120px;
+          background: rgb(80, 50, 20); /* bruna "marken" under knapparna */
           pointer-events: none; /* själva lådan tar inte tryck, bara knapparna */
         }
 
         #mobile-controls button {
           position: absolute;
-          bottom: 0;
+          bottom: 20px;
           width: 80px;
           height: 80px;
           font-size: 36px;
